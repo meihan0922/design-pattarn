@@ -1,13 +1,3 @@
-class Person {
-  constructor(name) {
-    this.name = name;
-  }
+import SingletonPattern from "./SingletonPattern";
 
-  getName() {
-    return this.name;
-  }
-}
-
-let p = new Person("mei");
-
-alert(p.getName());
+SingletonPattern();
