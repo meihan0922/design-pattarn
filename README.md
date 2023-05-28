@@ -3,7 +3,7 @@
 書名: 『JavaScript 設計模式與開發實踐』
 作者: 曾探
 
-## Chapator 01 物件導向的 JS
+## Chapator 01 - 物件導向的 JS
 
 ### 動態類型語言和鴨子類型
 
@@ -157,3 +157,171 @@ makeShow(new B());
 4. 如果執行的結果是物件，則返回結果，不然就返回新創建的對象
 
 ---
+
+## Chapator 02 - this、call、apply
+
+在 JS 當中 this 總是指向某個物件，而具體指向哪個物件是在運行時執行環境動態綁定的（撇除掉箭頭函式）。
+
+### this 的指向
+
+所以在函式被呼叫時，會改變 this 的指向。
+撇除掉 with, eval 的狀況，this 的指向會分為四種。
+
+1. 作為某物件的方法呼叫
+2. 普通函式呼叫
+3. 建構子呼叫
+4. apply, call 綁定
+
+- 作為某物件的方法呼叫
+
+  ```js
+  const a = 2;
+  const obj = {
+    a: 1,
+    fn: function () {
+      return this.a;
+    },
+  };
+  const result = obj.fn(); // 1
+  ```
+
+- 普通函式呼叫
+  指向全域物件，在瀏覽器中指的是 window。在 ES5 strict 模式中，指向的是 undefined
+
+  ```js
+  window.a = 2;
+  const obj = {
+    a: 1,
+    fn: function () {
+      return this.a;
+    },
+  };
+  const result = obj.fn;
+  result(); // 2
+  ```
+
+  ```js
+  window.id = "aaa";
+  document.getElementById("div1").onclick = function () {
+    console.log(this.id); // "div1"
+    const callback = function () {
+      return this.id;
+    };
+    callback(); // "aaa"
+  };
+  // 解決方案: 另外設立變數存this
+  ```
+
+- 建構子呼叫
+  一般來說，this 會指向建構子回傳的物件。但如果回傳的型別不是物件，會回傳新建立的物件本身。
+
+  ```js
+  const Test = function(){
+    this.name = "aaa";
+    return {
+        name: "bbb";
+    }
+  }
+  const obj = new Test();
+  obj.name; // "bbb"
+  ```
+
+  ```js
+  const Test = function () {
+    this.name = "aaa";
+    return "bbb";
+  };
+  const obj = new Test();
+  obj.name; // "aaa"
+  ```
+
+### 遺失的 this
+
+```js
+// 這會有什麼問題？
+const getId = document.getElementById;
+getId("div1");
+// getId 會變成普通函式的呼叫
+// getElementById 中如果有實作 this 則會從 document 改成指向 window
+
+// 這樣才會指向 document
+const getId = function (id) {
+  return document.getElementById(id);
+};
+getId("div1");
+
+// 或者重新的封裝 getElementById
+document.getElementById = (function (fn) {
+  return function () {
+    return fn.apply(document, arguments);
+  };
+})(document.getElementById);
+```
+
+### call, apply
+
+apply 接受兩個參數，
+第一個為指定函式內 this 的指向（可為空值，則為預設的宿主物件，瀏覽器是 window，如果為嚴格模式，則是 null），
+第二個參數為陣列或類陣列，因為不必關心有多少參數，使用頻率高。
+
+call 只是 apply 構建的語法糖，只是傳入的參數是不固定的，通常用做需要一目瞭然知道形參跟實參的對應關係。
+
+他們也用在需要借用某物件方法時。
+
+```js
+Math.max.apply(null, [1, 2, 4, 8, 3]);
+```
+
+比方說，類陣列是沒有辦法操作 Array.prototype 上的方法的，但可以拿來借用，做到像是繼承一般的功能。
+
+v8 引擎實作的 push 原理是？
+
+```js
+function mockPush(){
+    // this 指向的是調用的對象，不管 this 指的到底是誰，有 length 可以調用就好
+    var n = TO_UNIT32(this.length);
+    // push 的參數個數
+    var m = %_ArgumentsLength();
+    for(var i = 0; i < m; i++){
+        this[i+n] = %_Arguments(i); // 開始複製<所以 push 算是複製的過程
+    }
+    this.length = n + m; // 新的長度
+    return this.length;
+}
+```
+
+上述可以知道，只要 this 有 length 方法可以調用，且可以存取屬性，則其實可以 apply 到其他物件身上。
+
+```js
+const a = {};
+Array.prototype.push.call(a, "1");
+concole.log(a.length); // 1
+console.log(a[0]); // '1'
+```
+
+### bind
+
+也是 apply 為基礎寫的語法糖。
+
+```js
+// 簡化版bind
+function mockBind() {
+  const thisFn = this; // 指向原函式
+  const bindObj = [].shift.call(arguments); // bind內的第一個參數 欲綁定的物件
+  const args = [].slice.call(arguments); // bind 第一個以後的參數，轉換成陣列
+  return function () {
+    return thisFn.apply(bindObj, [].concat(args, [].slice.call(arguments)));
+  };
+}
+
+const obj = {
+    name: "aaa";
+}
+
+const fn = function(a,b,c,d){
+    console.log(this.name)
+    console.log([a,b,c,d])
+}.bind(obj, 1, 2);
+
+fn(3, 4); // "aaa", [1,2,3,4]
+```
