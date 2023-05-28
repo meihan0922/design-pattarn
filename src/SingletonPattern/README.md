@@ -17,7 +17,7 @@
 
 ---
 
-### 硬是用實作實作單例
+### 硬是用實作單例
 
 ```js
 const Example = function (name) {
@@ -42,7 +42,7 @@ const b = Example.getInstance("b");
 console.log(a === b);
 ```
 
-> 但使用者需要知道這是單例，不能使用`new XXX`，必須改用`getInstance`方法。
+> 但使用者需要知道這是單例，不能使用一般基本的`new XXX`，必須改用`getInstance`方法。
 
 ---
 
@@ -138,6 +138,7 @@ const createLoginModal = function(){
   document.body.appendChild(div);
   return div;
 }
+const createSingleLoginModal = getSingle(createLoginModal)
 
 const createExampleModal = function(){
   const iframe = document.createElement("iframe");
@@ -147,9 +148,11 @@ const createExampleModal = function(){
   return iframe;
 }
 
+const createSingleExampleModal = getSingle(createExampleModal)
+
 document.getElementById('abc').onclick = function(){
   // 也可以createExampleModal
-  const ele = createLoginModal();
+  const ele = createSingleLoginModal();
   ele.style.display = 'block';
 }
 ```

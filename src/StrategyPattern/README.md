@@ -111,11 +111,11 @@ Validator.prototype.add = function (dom, rules) {
 };
 
 Validator.prototype.validate = function () {
-  for(const i=0, validatorFunc; validatorFunc= this.funcArr[i++]){
+  for (let i = 0, validatorFunc; (validatorFunc = this.funcArr[i++]); ) {
     const errMsg = validatorFunc();
-    if(errMsg)return errMsg
+    if (errMsg) return errMsg;
   }
-}
+};
 ```
 
 ---
